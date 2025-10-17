@@ -1,16 +1,25 @@
 # app.py
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 import qrcode
 import os
 from datetime import datetime
-import json
+import random
+import string
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'tikozetu-secret-key-2023'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///tikozetu.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Add this after creating the app
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
 
 db = SQLAlchemy(app)
 

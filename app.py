@@ -9,19 +9,13 @@ from datetime import datetime
 import random
 import string
 
-
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'tikozetu-secret-key-2023'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///tikozetu.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Add this after creating the app
-@app.after_request
-def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    return response
+# Add CORS support
+CORS(app)
 
 db = SQLAlchemy(app)
 
@@ -49,6 +43,15 @@ class Event(db.Model):
     
     organizer = db.relationship('User', backref=db.backref('events', lazy=True))
 
+class EventPayment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
+    till_number = db.Column(db.String(20), nullable=False)
+    payment_name = db.Column(db.String(100), nullable=False)
+    payment_instructions = db.Column(db.Text, nullable=True)
+    
+    event = db.relationship('Event', backref=db.backref('payment_info', lazy=True))
+
 class Ticket(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     event_id = db.Column(db.Integer, db.ForeignKey('event.id'), nullable=False)
@@ -58,10 +61,23 @@ class Ticket(db.Model):
     booking_reference = db.Column(db.String(20), unique=True, nullable=False)
     qr_code_path = db.Column(db.String(500))
     is_checked_in = db.Column(db.Boolean, default=False)
+    payment_status = db.Column(db.String(20), default='unpaid')  # unpaid, pending, paid
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     event = db.relationship('Event', backref=db.backref('tickets', lazy=True))
     attendee = db.relationship('User', backref=db.backref('tickets', lazy=True))
+
+class Payment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    ticket_id = db.Column(db.Integer, db.ForeignKey('ticket.id'), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    payment_method = db.Column(db.String(50), nullable=False)
+    payment_reference = db.Column(db.String(100), nullable=False)
+    status = db.Column(db.String(20), default='pending')  # pending, confirmed, rejected
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    confirmed_at = db.Column(db.DateTime, nullable=True)
+    
+    ticket = db.relationship('Ticket', backref=db.backref('payment', uselist=False))
 
 # Create sample data
 def create_sample_data():
@@ -138,8 +154,18 @@ def create_sample_data():
     for event_data in events_data:
         event = Event(**event_data)
         db.session.add(event)
+        
+        # Create payment info for each event
+        payment_info = EventPayment(
+            event_id=event.id,
+            till_number='123456',
+            payment_name='MPESA Buy Goods',
+            payment_instructions='Pay to the till number above and include your name as reference'
+        )
+        db.session.add(payment_info)
     
     db.session.commit()
+    print("Sample data created successfully!")
 
 # Routes
 @app.route('/')
@@ -229,27 +255,60 @@ def logout():
 def create_event():
     try:
         if 'user_id' not in session or session['user_role'] not in ['organizer', 'admin']:
-            return jsonify({'error': 'Unauthorized'}), 401
+            return jsonify({'error': 'Unauthorized. Only organizers and admins can create events.'}), 401
         
         data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['title', 'description', 'category', 'date', 'location', 'price', 'capacity', 'till_number', 'payment_name']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+        
+        # Parse date and create event
+        event_date = datetime.fromisoformat(data['date'].replace('Z', '+00:00'))
+        
         new_event = Event(
-            title=data.get('title'),
-            description=data.get('description'),
-            category=data.get('category'),
-            date=datetime.fromisoformat(data.get('date').replace('Z', '+00:00')),
-            location=data.get('location'),
-            price=float(data.get('price')),
-            capacity=int(data.get('capacity')),
+            title=data['title'],
+            description=data['description'],
+            category=data['category'],
+            date=event_date,
+            location=data['location'],
+            price=float(data['price']),
+            capacity=int(data['capacity']),
             organizer_id=session['user_id'],
-            image_url=data.get('image_url')
+            image_url=data.get('image_url', 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80')
         )
+        
         db.session.add(new_event)
+        db.session.flush()  # Get the event ID
+        
+        # Create payment information
+        payment_info = EventPayment(
+            event_id=new_event.id,
+            till_number=data['till_number'],
+            payment_name=data['payment_name'],
+            payment_instructions=data.get('payment_instructions', 'Pay to the till number above and include your name as reference')
+        )
+        db.session.add(payment_info)
         db.session.commit()
         
         return jsonify({
             'message': 'Event created successfully', 
-            'event_id': new_event.id
+            'event_id': new_event.id,
+            'event': {
+                'id': new_event.id,
+                'title': new_event.title,
+                'description': new_event.description,
+                'category': new_event.category,
+                'date': new_event.date.isoformat(),
+                'location': new_event.location,
+                'price': new_event.price,
+                'capacity': new_event.capacity,
+                'image_url': new_event.image_url
+            }
         }), 201
+        
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -268,24 +327,9 @@ def book_ticket():
             return jsonify({'error': 'Event not found'}), 404
         
         # Generate booking reference
-        import random
-        import string
         booking_ref = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
         
         total_price = event.price * quantity
-        
-        # Create qrcodes directory if it doesn't exist
-        os.makedirs('static/qrcodes', exist_ok=True)
-        
-        # Generate QR code
-        qr = qrcode.QRCode(version=1, box_size=10, border=5)
-        qr_data = f"TikoZetu|{booking_ref}|{event_id}|{session['user_id']}|{quantity}"
-        qr.add_data(qr_data)
-        qr.make(fit=True)
-        
-        qr_img = qr.make_image(fill_color="black", back_color="white")
-        qr_path = f"static/qrcodes/{booking_ref}.png"
-        qr_img.save(qr_path)
         
         new_ticket = Ticket(
             event_id=event_id,
@@ -293,21 +337,196 @@ def book_ticket():
             quantity=quantity,
             total_price=total_price,
             booking_reference=booking_ref,
-            qr_code_path=qr_path
+            qr_code_path=None,  # Will be generated after payment confirmation
+            payment_status='unpaid'
         )
         db.session.add(new_ticket)
         db.session.commit()
         
         return jsonify({
-            'message': 'Ticket booked successfully',
+            'message': 'Ticket reserved successfully. Please complete payment.',
+            'ticket_id': new_ticket.id,
             'booking_reference': booking_ref,
-            'qr_code_path': f'/{qr_path}',
             'total_price': total_price,
             'event_title': event.title,
             'quantity': quantity
         }), 201
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@app.route('/api/events/<int:event_id>/payment-info')
+def get_event_payment_info(event_id):
+    payment_info = EventPayment.query.filter_by(event_id=event_id).first()
+    if not payment_info:
+        return jsonify({'error': 'Payment information not found for this event'}), 404
+    
+    return jsonify({
+        'till_number': payment_info.till_number,
+        'payment_name': payment_info.payment_name,
+        'payment_instructions': payment_info.payment_instructions
+    })
+
+@app.route('/api/tickets/<int:ticket_id>/submit-payment', methods=['POST'])
+def submit_payment(ticket_id):
+    try:
+        if 'user_id' not in session:
+            return jsonify({'error': 'Please login to submit payment'}), 401
+        
+        data = request.get_json()
+        ticket = Ticket.query.get(ticket_id)
+        
+        if not ticket or ticket.attendee_id != session['user_id']:
+            return jsonify({'error': 'Ticket not found'}), 404
+        
+        # Create payment record
+        payment = Payment(
+            ticket_id=ticket_id,
+            amount=ticket.total_price,
+            payment_method=data.get('payment_method', 'MPESA'),
+            payment_reference=data.get('payment_reference', ''),
+            status='pending'
+        )
+        
+        # Update ticket payment status
+        ticket.payment_status = 'pending'
+        
+        db.session.add(payment)
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Payment submitted successfully. Waiting for organizer confirmation.',
+            'payment_id': payment.id
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/organizer/payments/pending')
+def get_pending_payments():
+    if 'user_id' not in session or session['user_role'] not in ['organizer', 'admin']:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    # Get events organized by this user
+    user_events = Event.query.filter_by(organizer_id=session['user_id']).all()
+    event_ids = [event.id for event in user_events]
+    
+    pending_payments = Payment.query.join(Ticket).filter(
+        Ticket.event_id.in_(event_ids),
+        Payment.status == 'pending'
+    ).all()
+    
+    payments_data = []
+    for payment in pending_payments:
+        payments_data.append({
+            'payment_id': payment.id,
+            'ticket_id': payment.ticket_id,
+            'event_title': payment.ticket.event.title,
+            'attendee_name': payment.ticket.attendee.name,
+            'amount': payment.amount,
+            'payment_reference': payment.payment_reference,
+            'payment_method': payment.payment_method,
+            'created_at': payment.created_at.isoformat()
+        })
+    
+    return jsonify(payments_data)
+
+@app.route('/api/organizer/payments/<int:payment_id>/confirm', methods=['POST'])
+def confirm_payment(payment_id):
+    try:
+        if 'user_id' not in session or session['user_role'] not in ['organizer', 'admin']:
+            return jsonify({'error': 'Unauthorized'}), 401
+        
+        payment = Payment.query.get(payment_id)
+        if not payment:
+            return jsonify({'error': 'Payment not found'}), 404
+        
+        # Verify the organizer owns this event
+        event_organizer_id = payment.ticket.event.organizer_id
+        if event_organizer_id != session['user_id'] and session['user_role'] != 'admin':
+            return jsonify({'error': 'Unauthorized'}), 401
+        
+        payment.status = 'confirmed'
+        payment.confirmed_at = datetime.utcnow()
+        payment.ticket.payment_status = 'paid'
+        
+        # Generate QR code for the ticket
+        booking_ref = payment.ticket.booking_reference
+        qr = qrcode.QRCode(version=1, box_size=10, border=5)
+        qr_data = f"TikoZetu|{booking_ref}|{payment.ticket.event_id}|{payment.ticket.attendee_id}|{payment.ticket.quantity}"
+        qr.add_data(qr_data)
+        qr.make(fit=True)
+        
+        qr_img = qr.make_image(fill_color="black", back_color="white")
+        qr_path = f"static/qrcodes/{booking_ref}.png"
+        os.makedirs(os.path.dirname(qr_path), exist_ok=True)
+        qr_img.save(qr_path)
+        
+        payment.ticket.qr_code_path = qr_path
+        
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Payment confirmed successfully',
+            'ticket': {
+                'booking_reference': booking_ref,
+                'qr_code_path': f'/{qr_path}',
+                'payment_status': 'paid'
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/organizer/payments/<int:payment_id>/reject', methods=['POST'])
+def reject_payment(payment_id):
+    try:
+        if 'user_id' not in session or session['user_role'] not in ['organizer', 'admin']:
+            return jsonify({'error': 'Unauthorized'}), 401
+        
+        payment = Payment.query.get(payment_id)
+        if not payment:
+            return jsonify({'error': 'Payment not found'}), 404
+        
+        # Verify the organizer owns this event
+        event_organizer_id = payment.ticket.event.organizer_id
+        if event_organizer_id != session['user_id'] and session['user_role'] != 'admin':
+            return jsonify({'error': 'Unauthorized'}), 401
+        
+        payment.status = 'rejected'
+        payment.ticket.payment_status = 'unpaid'
+        
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Payment rejected successfully'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/user/tickets')
+def get_user_tickets():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Please login to view tickets'}), 401
+    
+    tickets = Ticket.query.filter_by(attendee_id=session['user_id']).all()
+    tickets_data = []
+    
+    for ticket in tickets:
+        tickets_data.append({
+            'id': ticket.id,
+            'event_title': ticket.event.title,
+            'event_date': ticket.event.date.isoformat(),
+            'event_location': ticket.event.location,
+            'quantity': ticket.quantity,
+            'total_price': ticket.total_price,
+            'booking_reference': ticket.booking_reference,
+            'payment_status': ticket.payment_status,
+            'qr_code_path': ticket.qr_code_path,
+            'created_at': ticket.created_at.isoformat()
+        })
+    
+    return jsonify(tickets_data)
 
 @app.route('/api/user/profile')
 def get_user_profile():
@@ -324,6 +543,35 @@ def get_user_profile():
         'email': user.email,
         'role': user.role
     })
+
+@app.route('/api/organizer/dashboard')
+def get_organizer_dashboard():
+    if 'user_id' not in session or session['user_role'] not in ['organizer', 'admin']:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    # Get organizer's events
+    events = Event.query.filter_by(organizer_id=session['user_id']).all()
+    events_data = []
+    
+    for event in events:
+        total_tickets = Ticket.query.filter_by(event_id=event.id).count()
+        confirmed_tickets = Ticket.query.filter_by(event_id=event.id, payment_status='paid').count()
+        pending_payments = Payment.query.join(Ticket).filter(
+            Ticket.event_id == event.id,
+            Payment.status == 'pending'
+        ).count()
+        
+        events_data.append({
+            'id': event.id,
+            'title': event.title,
+            'date': event.date.isoformat(),
+            'total_tickets': total_tickets,
+            'confirmed_tickets': confirmed_tickets,
+            'pending_payments': pending_payments,
+            'revenue': confirmed_tickets * event.price
+        })
+    
+    return jsonify(events_data)
 
 if __name__ == '__main__':
     with app.app_context():

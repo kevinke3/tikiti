@@ -916,17 +916,199 @@
         });
 
         // Form submission
-        document.getElementById('loginForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            alert('Login functionality would be implemented with Flask backend');
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    
+    try {
+        const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert('Login successful!');
             closeModal(loginModal);
-        });
+            // Update UI to show logged in state
+            updateAuthUI(data.user);
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        alert('Error connecting to server: ' + error.message);
+    }
+});
 
-        document.getElementById('registerForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            alert('Registration functionality would be implemented with Flask backend');
-            closeModal(registerModal);
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const name = document.getElementById('registerName').value;
+    const email = document.getElementById('registerEmail').value;
+    const password = document.getElementById('registerPassword').value;
+    const role = document.getElementById('registerRole').value;
+    
+    try {
+        const response = await fetch('/api/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name, email, password, role })
         });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert('Registration successful! You can now login.');
+            closeModal(registerModal);
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        alert('Error connecting to server: ' + error.message);
+    }
+});
+
+// Function to update UI based on authentication state
+function updateAuthUI(user) {
+    const authButtons = document.querySelector('.auth-buttons');
+    if (user) {
+        authButtons.innerHTML = `
+            <span style="color: white; margin-right: 1rem;">Hello, ${user.name}</span>
+            <button class="btn btn-outline" id="logoutBtn">Logout</button>
+        `;
+        document.getElementById('logoutBtn').addEventListener('click', logout);
+    } else {
+        authButtons.innerHTML = `
+            <button class="btn btn-outline" id="loginBtn">Login</button>
+            <button class="btn btn-primary" id="registerBtn">Register</button>
+        `;
+        // Re-attach event listeners to new buttons
+        document.getElementById('loginBtn').addEventListener('click', () => openModal(loginModal));
+        document.getElementById('registerBtn').addEventListener('click', () => openModal(registerModal));
+    }
+}
+
+// Logout function
+async function logout() {
+    try {
+        const response = await fetch('/api/logout');
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert('Logged out successfully!');
+            updateAuthUI(null);
+        }
+    } catch (error) {
+        alert('Error logging out: ' + error.message);
+    }
+}
+
+// Check if user is logged in on page load
+async function checkAuthStatus() {
+    try {
+        const response = await fetch('/api/user/profile');
+        if (response.ok) {
+            const user = await response.json();
+            updateAuthUI(user);
+        }
+    } catch (error) {
+        // User is not logged in, which is fine
+    }
+}
+
+// Update event booking functionality
+function attachEventListeners() {
+    // Attach event listeners to all "Book Now" buttons
+    document.querySelectorAll('.event-actions .btn-primary').forEach(button => {
+        button.addEventListener('click', async function() {
+            const eventCard = this.closest('.event-card');
+            const eventTitle = eventCard.querySelector('.event-title').textContent;
+            
+            if (!sessionStorage.getItem('user_id')) {
+                alert('Please login to book tickets');
+                openModal(loginModal);
+                return;
+            }
+            
+            const quantity = prompt(`How many tickets for "${eventTitle}"?`, '1');
+            if (quantity && !isNaN(quantity) && quantity > 0) {
+                try {
+                    // In a real app, you'd get the event ID from a data attribute
+                    const eventId = this.closest('.event-card').getAttribute('data-event-id') || '1';
+                    
+                    const response = await fetch('/api/tickets/book', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ 
+                            event_id: eventId, 
+                            quantity: parseInt(quantity) 
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        alert(`Booking successful!\nReference: ${data.booking_reference}\nTotal: KSh ${data.total_price.toLocaleString()}`);
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                } catch (error) {
+                    alert('Error connecting to server: ' + error.message);
+                }
+            }
+        });
+    });
+}
+
+// Update the loadEvents function to include data attributes
+function loadEvents() {
+    eventsGrid.innerHTML = '';
+    events.forEach(event => {
+        const eventCard = document.createElement('div');
+        eventCard.className = 'event-card';
+        eventCard.setAttribute('data-event-id', event.id);
+        eventCard.innerHTML = `
+            <img src="${event.image}" alt="${event.title}" class="event-image">
+            <div class="event-content">
+                <span class="event-category">${event.category}</span>
+                <h3 class="event-title">${event.title}</h3>
+                <div class="event-date">
+                    <i class="far fa-calendar"></i>
+                    <span>${new Date(event.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                </div>
+                <div class="event-location">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>${event.location}</span>
+                </div>
+                <div class="event-price">KSh ${event.price.toLocaleString()}</div>
+                <div class="event-actions">
+                    <button class="btn btn-outline" style="color: var(--primary); border-color: var(--primary);">Details</button>
+                    <button class="btn btn-primary">Book Now</button>
+                </div>
+            </div>
+        `;
+        eventsGrid.appendChild(eventCard);
+    });
+    
+    // Re-attach event listeners after loading events
+    setTimeout(attachEventListeners, 100);
+}
+
+// Update the initialization
+document.addEventListener('DOMContentLoaded', function() {
+    loadEvents();
+    checkAuthStatus();
+});
 
         // Initialize the page
         loadEvents();

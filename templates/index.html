@@ -771,7 +771,7 @@
         </div>
     </div>
 
-    <script>
+ <script>
     // DOM Elements
     const eventsGrid = document.getElementById('eventsGrid');
     const loginBtn = document.getElementById('loginBtn');
@@ -786,6 +786,7 @@
 
     // Global events array
     let events = [];
+    let currentUser = null;
 
     // Load events from backend
     async function loadEvents() {
@@ -824,42 +825,6 @@
                 location: "KICC, Nairobi",
                 price: 3000,
                 image_url: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80"
-            },
-            {
-                id: 3,
-                title: "Art Exhibition: Kenyan Masters",
-                category: "Art",
-                date: "2023-12-10T10:00:00",
-                location: "Nairobi Gallery",
-                price: 500,
-                image_url: "https://images.unsplash.com/photo-1563089145-599997674d42?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80"
-            },
-            {
-                id: 4,
-                title: "Food & Wine Festival",
-                category: "Food & Drink",
-                date: "2023-12-02T12:00:00",
-                location: "Nakuru",
-                price: 2000,
-                image_url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80"
-            },
-            {
-                id: 5,
-                title: "Marathon for Charity",
-                category: "Sports",
-                date: "2023-12-10T07:00:00",
-                location: "Eldoret",
-                price: 800,
-                image_url: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80"
-            },
-            {
-                id: 6,
-                title: "Comedy Night Live",
-                category: "Comedy",
-                date: "2023-12-15T20:00:00",
-                location: "Nairobi",
-                price: 1200,
-                image_url: "https://images.unsplash.com/photo-1549576490-b0b4831ef60a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80"
             }
         ];
         renderEvents();
@@ -868,6 +833,18 @@
     // Render events to the grid
     function renderEvents() {
         eventsGrid.innerHTML = '';
+        
+        if (events.length === 0) {
+            eventsGrid.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 3rem;">
+                    <i class="fas fa-calendar-times" style="font-size: 3rem; color: var(--gray); margin-bottom: 1rem;"></i>
+                    <h3 style="color: var(--gray);">No events found</h3>
+                    <p>Check back later for upcoming events.</p>
+                </div>
+            `;
+            return;
+        }
+        
         events.forEach(event => {
             const eventCard = document.createElement('div');
             eventCard.className = 'event-card';
@@ -922,6 +899,7 @@
         button.addEventListener('click', () => {
             closeModal(loginModal);
             closeModal(registerModal);
+            closeModal(document.getElementById('createEventModal'));
         });
     });
 
@@ -941,6 +919,7 @@
     window.addEventListener('click', (e) => {
         if (e.target === loginModal) closeModal(loginModal);
         if (e.target === registerModal) closeModal(registerModal);
+        if (e.target === document.getElementById('createEventModal')) closeModal(document.getElementById('createEventModal'));
     });
 
     // Mobile menu toggle
@@ -970,6 +949,7 @@
                 alert('Login successful!');
                 closeModal(loginModal);
                 updateAuthUI(data.user);
+                currentUser = data.user;
             } else {
                 alert('Error: ' + data.error);
             }
@@ -1058,9 +1038,7 @@
             createEventBtn.className = 'btn btn-primary';
             createEventBtn.innerHTML = '<i class="fas fa-plus"></i> Create Event';
             createEventBtn.style.marginRight = '1rem';
-            createEventBtn.addEventListener('click', () => {
-                alert('Event creation form would open here. This would be implemented in the organizer dashboard.');
-            });
+            createEventBtn.addEventListener('click', openCreateEventModal);
             document.querySelector('.header-content').insertBefore(createEventBtn, document.querySelector('.auth-buttons'));
         }
     }
@@ -1073,6 +1051,123 @@
         }
     }
 
+    // Create Event Modal
+    function openCreateEventModal() {
+        // Create modal if it doesn't exist
+        let createEventModal = document.getElementById('createEventModal');
+        if (!createEventModal) {
+            createEventModal = document.createElement('div');
+            createEventModal.id = 'createEventModal';
+            createEventModal.className = 'modal';
+            createEventModal.innerHTML = `
+                <div class="modal-content">
+                    <span class="close-modal">&times;</span>
+                    <h2>Create New Event</h2>
+                    <form id="createEventForm">
+                        <div class="form-group">
+                            <label for="eventTitle">Event Title</label>
+                            <input type="text" id="eventTitle" class="form-control" placeholder="Enter event title" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="eventDescription">Description</label>
+                            <textarea id="eventDescription" class="form-control" placeholder="Describe your event" rows="3" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="eventCategory">Category</label>
+                            <select id="eventCategory" class="form-control" required>
+                                <option value="">Select category</option>
+                                <option value="Music">Music</option>
+                                <option value="Conference">Conference</option>
+                                <option value="Art">Art</option>
+                                <option value="Food & Drink">Food & Drink</option>
+                                <option value="Sports">Sports</option>
+                                <option value="Comedy">Comedy</option>
+                                <option value="Workshop">Workshop</option>
+                                <option value="Networking">Networking</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="eventDate">Date & Time</label>
+                            <input type="datetime-local" id="eventDate" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="eventLocation">Location</label>
+                            <input type="text" id="eventLocation" class="form-control" placeholder="Enter event location" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="eventPrice">Ticket Price (KSh)</label>
+                            <input type="number" id="eventPrice" class="form-control" placeholder="Enter ticket price" min="0" step="100" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="eventCapacity">Capacity</label>
+                            <input type="number" id="eventCapacity" class="form-control" placeholder="Maximum attendees" min="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="eventImage">Image URL</label>
+                            <input type="url" id="eventImage" class="form-control" placeholder="https://example.com/image.jpg">
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width: 100%;">Create Event</button>
+                    </form>
+                </div>
+            `;
+            document.body.appendChild(createEventModal);
+            
+            // Add event listener for form submission
+            document.getElementById('createEventForm').addEventListener('submit', handleCreateEvent);
+            
+            // Add close event listener
+            createEventModal.querySelector('.close-modal').addEventListener('click', () => {
+                closeModal(createEventModal);
+            });
+        }
+        
+        // Set minimum date to today
+        const today = new Date().toISOString().slice(0, 16);
+        document.getElementById('eventDate').min = today;
+        
+        openModal(createEventModal);
+    }
+
+    // Handle event creation
+    async function handleCreateEvent(e) {
+        e.preventDefault();
+        
+        const eventData = {
+            title: document.getElementById('eventTitle').value,
+            description: document.getElementById('eventDescription').value,
+            category: document.getElementById('eventCategory').value,
+            date: document.getElementById('eventDate').value,
+            location: document.getElementById('eventLocation').value,
+            price: parseFloat(document.getElementById('eventPrice').value),
+            capacity: parseInt(document.getElementById('eventCapacity').value),
+            image_url: document.getElementById('eventImage').value || 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=500&q=80'
+        };
+        
+        try {
+            const response = await fetch('/api/events/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(eventData)
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                alert('Event created successfully!');
+                closeModal(document.getElementById('createEventModal'));
+                document.getElementById('createEventForm').reset();
+                // Reload events to show the new one
+                loadEvents();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (error) {
+            alert('Error connecting to server: ' + error.message);
+        }
+    }
+
     // Logout function
     async function logout() {
         try {
@@ -1082,6 +1177,8 @@
             if (response.ok) {
                 alert('Logged out successfully!');
                 updateAuthUI(null);
+                currentUser = null;
+                loadEvents(); // Reload events to show public view
             } else {
                 alert('Error: ' + data.error);
             }
@@ -1096,6 +1193,7 @@
             const response = await fetch('/api/user/profile');
             if (response.ok) {
                 const user = await response.json();
+                currentUser = user;
                 updateAuthUI(user);
             }
         } catch (error) {
@@ -1241,7 +1339,8 @@
     window.debug = {
         loadEvents,
         checkAuthStatus,
-        updateAuthUI
+        updateAuthUI,
+        openCreateEventModal
     };
 </script>
 </body>

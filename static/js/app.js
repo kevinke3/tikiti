@@ -451,22 +451,26 @@ function updateAuthUI(user) {
     
     if (user) {
         authButtons.innerHTML = `
-            <button class="btn btn-outline" id="myTicketsBtn" style="margin-right: 1rem;">
+            <div class="user-info">
+                <i class="fas fa-user"></i>
+                <span>${user.name}</span>
+                <span class="user-role">
+                    ${user.role === 'organizer' ? '(Organizer)' : ''}
+                    ${user.role === 'admin' ? '(Admin)' : ''}
+                </span>
+            </div>
+            <button class="btn btn-outline" id="myTicketsBtn">
                 <i class="fas fa-ticket-alt"></i> My Tickets
             </button>
             ${(user.role === 'organizer' || user.role === 'admin') ? 
-                `<button class="btn btn-outline" id="organizerDashboardBtn" style="margin-right: 1rem;">
+                `<button class="btn btn-outline" id="organizerDashboardBtn">
                     <i class="fas fa-chart-bar"></i> Dashboard
                 </button>` : ''
             }
-            <span style="color: white; margin-right: 1rem;">
-                <i class="fas fa-user"></i> ${user.name}
-                ${user.role === 'organizer' ? ' (Organizer)' : ''}
-                ${user.role === 'admin' ? ' (Admin)' : ''}
-            </span>
             <button class="btn btn-outline" id="logoutBtn">Logout</button>
         `;
         
+        // Re-attach event listeners
         document.getElementById('myTicketsBtn').addEventListener('click', openTicketsModal);
         document.getElementById('logoutBtn').addEventListener('click', logout);
         
@@ -984,32 +988,7 @@ function downloadTicket() {
     }
 }
 
-// // Organizer Dashboard
-// function openOrganizerDashboard() {
-//     let dashboardModal = document.getElementById('organizerDashboardModal');
-//     if (!dashboardModal) {
-//         dashboardModal = document.createElement('div');
-//         dashboardModal.id = 'organizerDashboardModal';
-//         dashboardModal.className = 'modal';
-//         dashboardModal.innerHTML = `
-//             <div class="modal-content" style="max-width: 900px;">
-//                 <span class="close-modal">&times;</span>
-//                 <h2>Organizer Dashboard</h2>
-//                 <div id="dashboardTabs" style="margin-bottom: 1rem;">
-//                     <button class="btn btn-outline active" data-tab="events">My Events</button>
-//                     <button class="btn btn-outline" data-tab="payments">Pending Payments</button>
-//                 </div>
-//                 <div id="dashboardContent">
-//                     <div id="eventsTab" class="tab-content">
-//                         Loading events...
-//                     </div>
-//                     <div id="paymentsTab" class="tab-content" style="display: none;">
-//                         Loading payments...
-//                     </div>
-//                 </div>
-//             </div>
-//         `;
-
+// Enhanced Organizer Dashboard
 function openOrganizerDashboard() {
     let dashboardModal = document.getElementById('organizerDashboardModal');
     if (!dashboardModal) {
@@ -1099,46 +1078,124 @@ function openOrganizerDashboard() {
         document.body.appendChild(dashboardModal);
         modalManager.register('organizerDashboardModal', dashboardModal);
         
+        // Event listeners for dashboard
         dashboardModal.querySelector('.close-modal').addEventListener('click', () => {
             modalManager.close(dashboardModal);
         });
         
         // Tab switching
-        document.querySelectorAll('#dashboardTabs button').forEach(btn => {
+        document.querySelectorAll('#dashboardTabs .tab-btn').forEach(btn => {
             btn.addEventListener('click', function() {
-                document.querySelectorAll('#dashboardTabs button').forEach(b => b.classList.remove('active'));
+                // Update active tab button
+                document.querySelectorAll('#dashboardTabs .tab-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
                 
-                document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
-                document.getElementById(this.getAttribute('data-tab') + 'Tab').style.display = 'block';
+                // Show corresponding tab content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                    content.style.display = 'none';
+                });
                 
-                if (this.getAttribute('data-tab') === 'payments') {
-                    loadPendingPayments();
-                } else {
-                    loadOrganizerEvents();
+                const tabId = this.getAttribute('data-tab') + 'Tab';
+                const tabContent = document.getElementById(tabId);
+                if (tabContent) {
+                    tabContent.style.display = 'block';
+                    tabContent.classList.add('active');
+                    
+                    // Load content based on tab
+                    switch(this.getAttribute('data-tab')) {
+                        case 'events':
+                            loadOrganizerEvents();
+                            break;
+                        case 'payments':
+                            loadPendingPayments();
+                            break;
+                        case 'analytics':
+                            loadAnalytics();
+                            break;
+                    }
                 }
             });
         });
+        
+        // Create event from dashboard
+        document.getElementById('createEventFromDashboard').addEventListener('click', () => {
+            modalManager.close(dashboardModal);
+            openCreateEventModal();
+        });
+        
+        // Refresh payments
+        document.getElementById('refreshPayments').addEventListener('click', loadPendingPayments);
+        
+        // Analytics period change
+        document.getElementById('analyticsPeriod').addEventListener('change', loadAnalytics);
+    }
+    
+    // Reset to events tab and load data
+    document.querySelectorAll('#dashboardTabs .tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+        content.style.display = 'none';
+    });
+    
+    const eventsTabBtn = document.querySelector('#dashboardTabs .tab-btn[data-tab="events"]');
+    const eventsTab = document.getElementById('eventsTab');
+    
+    if (eventsTabBtn && eventsTab) {
+        eventsTabBtn.classList.add('active');
+        eventsTab.style.display = 'block';
+        eventsTab.classList.add('active');
     }
     
     loadOrganizerEvents();
     modalManager.open('organizerDashboardModal');
 }
 
+// Enhanced loadOrganizerEvents function
 async function loadOrganizerEvents() {
+    const eventsLoading = document.getElementById('eventsLoading');
+    const eventsList = document.getElementById('eventsList');
+    
+    if (eventsLoading) eventsLoading.style.display = 'block';
+    if (eventsList) eventsList.style.display = 'none';
+    
     try {
         const events = await apiCall('/api/organizer/dashboard');
         displayOrganizerEvents(events);
     } catch (error) {
-        document.getElementById('eventsTab').innerHTML = '<p>Error loading events</p>';
+        if (eventsList) {
+            eventsList.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <h4>Error Loading Events</h4>
+                    <p>${error.message}</p>
+                    <button class="btn btn-primary" onclick="loadOrganizerEvents()">Try Again</button>
+                </div>
+            `;
+            eventsList.style.display = 'block';
+        }
+    } finally {
+        if (eventsLoading) eventsLoading.style.display = 'none';
+        if (eventsList) eventsList.style.display = 'block';
     }
 }
 
+// Enhanced displayOrganizerEvents function
 function displayOrganizerEvents(events) {
-    const eventsTab = document.getElementById('eventsTab');
+    const eventsList = document.getElementById('eventsList');
+    if (!eventsList) return;
     
     if (events.length === 0) {
-        eventsTab.innerHTML = '<p>No events created yet.</p>';
+        eventsList.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-calendar-plus"></i>
+                <h4>No Events Created Yet</h4>
+                <p>Start by creating your first event to see analytics and manage tickets.</p>
+                <button class="btn btn-primary" onclick="openCreateEventModal()">
+                    <i class="fas fa-plus"></i> Create Your First Event
+                </button>
+            </div>
+        `;
         return;
     }
     
@@ -1148,92 +1205,172 @@ function displayOrganizerEvents(events) {
     const totalTickets = events.reduce((sum, event) => sum + event.total_tickets, 0);
     const confirmedTickets = events.reduce((sum, event) => sum + event.confirmed_tickets, 0);
     
-    eventsTab.innerHTML = `
-        <div class="dashboard-stats">
-            <div class="stat-card">
-                <h3>${totalEvents}</h3>
-                <p>Total Events</p>
+    eventsList.innerHTML = `
+        <div class="overall-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+            <div class="analytics-stat-card">
+                <div class="value">${totalEvents}</div>
+                <div class="label">Total Events</div>
             </div>
-            <div class="stat-card">
-                <h3>${totalTickets}</h3>
-                <p>Total Tickets</p>
+            <div class="analytics-stat-card">
+                <div class="value">${totalTickets}</div>
+                <div class="label">Total Tickets</div>
             </div>
-            <div class="stat-card">
-                <h3>${confirmedTickets}</h3>
-                <p>Confirmed Tickets</p>
+            <div class="analytics-stat-card">
+                <div class="value">${confirmedTickets}</div>
+                <div class="label">Confirmed</div>
             </div>
-            <div class="stat-card">
-                <h3>KSh ${totalRevenue.toLocaleString()}</h3>
-                <p>Total Revenue</p>
+            <div class="analytics-stat-card">
+                <div class="value">KSh ${totalRevenue.toLocaleString()}</div>
+                <div class="label">Total Revenue</div>
             </div>
         </div>
-        <h3>Event Details</h3>
+        <h4 style="margin-bottom: 1rem; color: var(--primary);">Event Details</h4>
         ${events.map(event => `
-            <div class="ticket-item">
-                <h4>${event.title}</h4>
-                <p><strong>Date:</strong> ${new Date(event.date).toLocaleDateString()}</p>
-                <p><strong>Time:</strong> ${new Date(event.date).toLocaleTimeString()}</p>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin: 1rem 0;">
-                    <div style="text-align: center;">
-                        <div style="font-size: 1.5rem; font-weight: bold; color: var(--primary);">${event.total_tickets}</div>
-                        <div style="font-size: 0.9rem; color: var(--gray);">Total Tickets</div>
+            <div class="dashboard-event-card">
+                <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <h4 style="margin: 0 0 0.5rem 0; color: var(--dark);">${event.title}</h4>
+                        <p style="color: var(--gray); margin: 0;">
+                            <i class="far fa-calendar"></i> ${new Date(event.date).toLocaleDateString()} 
+                            • <i class="far fa-clock"></i> ${new Date(event.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </p>
                     </div>
-                    <div style="text-align: center;">
-                        <div style="font-size: 1.5rem; font-weight: bold; color: var(--success);">${event.confirmed_tickets}</div>
-                        <div style="font-size: 0.9rem; color: var(--gray);">Confirmed</div>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button class="btn btn-outline btn-sm view-event-btn" data-event-id="${event.id}">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                        <button class="btn btn-outline btn-sm manage-tickets-btn" data-event-id="${event.id}">
+                            <i class="fas fa-ticket-alt"></i> Manage
+                        </button>
                     </div>
-                    <div style="text-align: center;">
-                        <div style="font-size: 1.5rem; font-weight: bold; color: var(--warning);">${event.pending_payments}</div>
-                        <div style="font-size: 0.9rem; color: var(--gray);">Pending</div>
+                </div>
+                
+                <div class="event-stats-grid">
+                    <div class="event-stat">
+                        <span class="number">${event.total_tickets}</span>
+                        <span class="label">Total Tickets</span>
                     </div>
-                    <div style="text-align: center;">
-                        <div style="font-size: 1.5rem; font-weight: bold; color: var(--secondary);">KSh ${event.revenue.toLocaleString()}</div>
-                        <div style="font-size: 0.9rem; color: var(--gray);">Revenue</div>
+                    <div class="event-stat">
+                        <span class="number" style="color: var(--success);">${event.confirmed_tickets}</span>
+                        <span class="label">Confirmed</span>
+                    </div>
+                    <div class="event-stat">
+                        <span class="number" style="color: var(--warning);">${event.pending_payments}</span>
+                        <span class="label">Pending</span>
+                    </div>
+                    <div class="event-stat">
+                        <span class="number" style="color: var(--secondary);">KSh ${event.revenue.toLocaleString()}</span>
+                        <span class="label">Revenue</span>
                     </div>
                 </div>
             </div>
         `).join('')}
     `;
+    
+    // Add event listeners for action buttons
+    eventsList.querySelectorAll('.view-event-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const eventId = this.getAttribute('data-event-id');
+            // Implement view event functionality
+            alert(`View event ${eventId} - Implement this feature`);
+        });
+    });
+    
+    eventsList.querySelectorAll('.manage-tickets-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const eventId = this.getAttribute('data-event-id');
+            // Implement manage tickets functionality
+            alert(`Manage tickets for event ${eventId} - Implement this feature`);
+        });
+    });
 }
 
+// Enhanced loadPendingPayments function
 async function loadPendingPayments() {
+    const paymentsLoading = document.getElementById('paymentsLoading');
+    const paymentsList = document.getElementById('paymentsList');
+    
+    if (paymentsLoading) paymentsLoading.style.display = 'block';
+    if (paymentsList) paymentsList.style.display = 'none';
+    
     try {
         const payments = await apiCall('/api/organizer/payments/pending');
         displayPendingPayments(payments);
+        
+        // Update badge count
+        const badge = document.getElementById('pendingPaymentsCount');
+        if (badge) {
+            if (payments.length > 0) {
+                badge.textContent = payments.length;
+                badge.style.display = 'flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
     } catch (error) {
-        document.getElementById('paymentsTab').innerHTML = '<p>Error loading payments</p>';
+        if (paymentsList) {
+            paymentsList.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <h4>Error Loading Payments</h4>
+                    <p>${error.message}</p>
+                    <button class="btn btn-primary" onclick="loadPendingPayments()">Try Again</button>
+                </div>
+            `;
+            paymentsList.style.display = 'block';
+        }
+    } finally {
+        if (paymentsLoading) paymentsLoading.style.display = 'none';
+        if (paymentsList) paymentsList.style.display = 'block';
     }
 }
 
+// Enhanced displayPendingPayments function
 function displayPendingPayments(payments) {
-    const paymentsTab = document.getElementById('paymentsTab');
+    const paymentsList = document.getElementById('paymentsList');
     
     if (payments.length === 0) {
-        paymentsTab.innerHTML = '<p>No pending payments.</p>';
+        paymentsList.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-check-circle"></i>
+                <h4>No Pending Payments</h4>
+                <p>All payments have been processed. Check back later for new payments.</p>
+            </div>
+        `;
         return;
     }
     
-    paymentsTab.innerHTML = payments.map(payment => `
+    paymentsList.innerHTML = payments.map(payment => `
         <div class="ticket-item">
-            <h4>${payment.event_title}</h4>
-            <p><strong>Attendee:</strong> ${payment.attendee_name}</p>
-            <p><strong>Amount:</strong> KSh ${payment.amount.toLocaleString()}</p>
-            <p><strong>Reference:</strong> ${payment.payment_reference}</p>
-            <p><strong>Method:</strong> ${payment.payment_method}</p>
-            <p><strong>Submitted:</strong> ${new Date(payment.created_at).toLocaleString()}</p>
-            <div style="margin-top: 1rem;">
-                <button class="btn btn-success confirm-payment-btn" data-payment-id="${payment.payment_id}">
-                    Confirm Payment
-                </button>
-                <button class="btn btn-danger reject-payment-btn" data-payment-id="${payment.payment_id}" style="margin-left: 0.5rem;">
-                    Reject
-                </button>
+            <div style="display: flex; justify-content: between; align-items: start; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h4 style="margin: 0 0 0.5rem 0;">${payment.event_title}</h4>
+                    <p style="color: var(--gray); margin: 0;">
+                        <strong>Attendee:</strong> ${payment.attendee_name} • 
+                        <strong>Amount:</strong> KSh ${payment.amount.toLocaleString()}
+                    </p>
+                    <p style="color: var(--gray); margin: 0.5rem 0 0 0;">
+                        <strong>Reference:</strong> ${payment.payment_reference} • 
+                        <strong>Method:</strong> ${payment.payment_method}
+                    </p>
+                    <p style="color: var(--gray); margin: 0.25rem 0 0 0;">
+                        <strong>Submitted:</strong> ${new Date(payment.created_at).toLocaleString()}
+                    </p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button class="btn btn-success confirm-payment-btn" data-payment-id="${payment.payment_id}">
+                        <i class="fas fa-check"></i> Confirm
+                    </button>
+                    <button class="btn btn-danger reject-payment-btn" data-payment-id="${payment.payment_id}">
+                        <i class="fas fa-times"></i> Reject
+                    </button>
+                </div>
             </div>
         </div>
     `).join('');
     
     // Add event listeners for payment actions using event delegation
-    paymentsTab.addEventListener('click', function(e) {
+    paymentsList.addEventListener('click', function(e) {
         const confirmBtn = e.target.closest('.confirm-payment-btn');
         const rejectBtn = e.target.closest('.reject-payment-btn');
         
@@ -1247,6 +1384,73 @@ function displayPendingPayments(payments) {
             rejectPayment(paymentId);
         }
     });
+}
+
+// Analytics function (placeholder - implement based on your backend)
+async function loadAnalytics() {
+    const analyticsLoading = document.getElementById('analyticsLoading');
+    const analyticsContent = document.getElementById('analyticsContent');
+    const period = document.getElementById('analyticsPeriod')?.value || '30';
+    
+    if (analyticsLoading) analyticsLoading.style.display = 'block';
+    if (analyticsContent) analyticsContent.style.display = 'none';
+    
+    try {
+        // This would call your analytics API
+        // const analytics = await apiCall(`/api/organizer/analytics?period=${period}`);
+        
+        // For now, show placeholder
+        setTimeout(() => {
+            if (analyticsContent) {
+                analyticsContent.innerHTML = `
+                    <div class="analytics-stats">
+                        <div class="analytics-stat-card">
+                            <div class="value">1,247</div>
+                            <div class="label">Total Views</div>
+                            <div class="trend positive">+12% from last period</div>
+                        </div>
+                        <div class="analytics-stat-card">
+                            <div class="value">89</div>
+                            <div class="label">Ticket Sales</div>
+                            <div class="trend positive">+8% from last period</div>
+                        </div>
+                        <div class="analytics-stat-card">
+                            <div class="value">KSh 156,800</div>
+                            <div class="label">Revenue</div>
+                            <div class="trend positive">+15% from last period</div>
+                        </div>
+                        <div class="analytics-stat-card">
+                            <div class="value">64%</div>
+                            <div class="label">Conversion Rate</div>
+                            <div class="trend negative">-3% from last period</div>
+                        </div>
+                    </div>
+                    <div class="analytics-charts">
+                        <div class="chart-placeholder">
+                            <i class="fas fa-chart-bar" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                            <h4>Analytics Charts</h4>
+                            <p>Revenue, ticket sales, and attendance charts would appear here.</p>
+                            <p><small>Connect your analytics API to display real data.</small></p>
+                        </div>
+                    </div>
+                `;
+                analyticsContent.style.display = 'block';
+            }
+            if (analyticsLoading) analyticsLoading.style.display = 'none';
+        }, 1000);
+    } catch (error) {
+        if (analyticsContent) {
+            analyticsContent.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <h4>Analytics Unavailable</h4>
+                    <p>${error.message}</p>
+                </div>
+            `;
+            analyticsContent.style.display = 'block';
+        }
+        if (analyticsLoading) analyticsLoading.style.display = 'none';
+    }
 }
 
 async function confirmPayment(paymentId) {

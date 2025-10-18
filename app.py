@@ -8,6 +8,7 @@ import os
 from datetime import datetime
 import random
 import string
+import sqlite3
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'tikozetu-secret-key-2023'
@@ -78,6 +79,21 @@ class Payment(db.Model):
     confirmed_at = db.Column(db.DateTime, nullable=True)
     
     ticket = db.relationship('Ticket', backref=db.backref('payment', uselist=False))
+
+# Function to check and update database schema
+def check_and_update_schema():
+    """Check if database schema needs to be updated and handle it"""
+    try:
+        # Try to query the Ticket table to see if payment_status column exists
+        db.session.execute('SELECT payment_status FROM ticket LIMIT 1')
+        print("Database schema is up to date.")
+    except Exception as e:
+        print("Database schema needs update. Recreating database...")
+        # Drop all tables and recreate
+        db.drop_all()
+        db.create_all()
+        create_sample_data()
+        print("Database recreated successfully.")
 
 # Create sample data
 def create_sample_data():
@@ -575,6 +591,6 @@ def get_organizer_dashboard():
 
 if __name__ == '__main__':
     with app.app_context():
-        db.create_all()
-        create_sample_data()
+        # Check and update database schema
+        check_and_update_schema()
     app.run(debug=True, host='0.0.0.0', port=5000)

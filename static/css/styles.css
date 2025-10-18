@@ -623,3 +623,35 @@ footer {
         margin: 1rem;
     }
 }
+
+/* Enhanced Modal Styles for Scrollable Content */
+.modal-content.scrollable {
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-content.scrollable::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-content.scrollable::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.modal-content.scrollable::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+.modal-content.scrollable::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* For specific modals that need scrolling */
+#createEventModal .modal-content,
+#ticketsModal .modal-content,
+#organizerDashboardModal .modal-content {
+    max-height: 80vh;
+    overflow-y: auto;
+}

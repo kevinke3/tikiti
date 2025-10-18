@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import text
 import qrcode
 import os
 from datetime import datetime
@@ -85,7 +86,7 @@ def check_and_update_schema():
     """Check if database schema needs to be updated and handle it"""
     try:
         # Try to query the Ticket table to see if payment_status column exists
-        db.session.execute('SELECT payment_status FROM ticket LIMIT 1')
+        db.session.execute(text('SELECT payment_status FROM ticket LIMIT 1'))
         print("Database schema is up to date.")
     except Exception as e:
         print("Database schema needs update. Recreating database...")
@@ -170,10 +171,11 @@ def create_sample_data():
     for event_data in events_data:
         event = Event(**event_data)
         db.session.add(event)
+        db.session.flush()  # This assigns an ID without committing
         
-        # Create payment info for each event
+        # Now create payment info with the event ID
         payment_info = EventPayment(
-            event_id=event.id,
+            event_id=event.id,  # This will now have a valid value
             till_number='123456',
             payment_name='MPESA Buy Goods',
             payment_instructions='Pay to the till number above and include your name as reference'

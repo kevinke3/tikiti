@@ -757,3 +757,37 @@ footer {
         display: none !important;
     }
 }
+
+/* Focus styles for accessibility */
+.btn:focus,
+.form-control:focus,
+.search-bar input:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* High contrast support */
+@media (prefers-contrast: high) {
+    :root {
+        --primary: #0000ff;
+        --secondary: #6a0dad;
+        --accent: #ff0000;
+    }
+    
+    .event-card {
+        border: 2px solid var(--dark);
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    .event-card:hover {
+        transform: none;
+    }
+}

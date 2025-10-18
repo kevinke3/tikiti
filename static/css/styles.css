@@ -655,3 +655,26 @@ footer {
     max-height: 80vh;
     overflow-y: auto;
 }
+
+/* Loading States */
+.loading-spinner {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--gray);
+}
+
+.loading-spinner .fa-spin {
+    animation: fa-spin 2s infinite linear;
+}
+
+@keyframes fa-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}

@@ -984,7 +984,32 @@ function downloadTicket() {
     }
 }
 
-// Organizer Dashboard
+// // Organizer Dashboard
+// function openOrganizerDashboard() {
+//     let dashboardModal = document.getElementById('organizerDashboardModal');
+//     if (!dashboardModal) {
+//         dashboardModal = document.createElement('div');
+//         dashboardModal.id = 'organizerDashboardModal';
+//         dashboardModal.className = 'modal';
+//         dashboardModal.innerHTML = `
+//             <div class="modal-content" style="max-width: 900px;">
+//                 <span class="close-modal">&times;</span>
+//                 <h2>Organizer Dashboard</h2>
+//                 <div id="dashboardTabs" style="margin-bottom: 1rem;">
+//                     <button class="btn btn-outline active" data-tab="events">My Events</button>
+//                     <button class="btn btn-outline" data-tab="payments">Pending Payments</button>
+//                 </div>
+//                 <div id="dashboardContent">
+//                     <div id="eventsTab" class="tab-content">
+//                         Loading events...
+//                     </div>
+//                     <div id="paymentsTab" class="tab-content" style="display: none;">
+//                         Loading payments...
+//                     </div>
+//                 </div>
+//             </div>
+//         `;
+
 function openOrganizerDashboard() {
     let dashboardModal = document.getElementById('organizerDashboardModal');
     if (!dashboardModal) {
@@ -992,19 +1017,81 @@ function openOrganizerDashboard() {
         dashboardModal.id = 'organizerDashboardModal';
         dashboardModal.className = 'modal';
         dashboardModal.innerHTML = `
-            <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-content scrollable" style="max-width: 1000px;">
                 <span class="close-modal">&times;</span>
-                <h2>Organizer Dashboard</h2>
-                <div id="dashboardTabs" style="margin-bottom: 1rem;">
-                    <button class="btn btn-outline active" data-tab="events">My Events</button>
-                    <button class="btn btn-outline" data-tab="payments">Pending Payments</button>
+                <div class="dashboard-header">
+                    <h2><i class="fas fa-chart-bar"></i> Organizer Dashboard</h2>
+                    <p>Manage your events and track payments</p>
                 </div>
-                <div id="dashboardContent">
-                    <div id="eventsTab" class="tab-content">
-                        Loading events...
+                
+                <div id="dashboardTabs" class="dashboard-tabs">
+                    <button class="tab-btn active" data-tab="events">
+                        <i class="fas fa-calendar-alt"></i>
+                        My Events
+                    </button>
+                    <button class="tab-btn" data-tab="payments">
+                        <i class="fas fa-money-bill-wave"></i>
+                        Pending Payments
+                        <span class="badge" id="pendingPaymentsCount" style="display: none;">0</span>
+                    </button>
+                    <button class="tab-btn" data-tab="analytics">
+                        <i class="fas fa-chart-line"></i>
+                        Analytics
+                    </button>
+                </div>
+                
+                <div id="dashboardContent" class="dashboard-content">
+                    <!-- Events Tab -->
+                    <div id="eventsTab" class="tab-content active">
+                        <div class="tab-header">
+                            <h3><i class="fas fa-calendar-alt"></i> My Events</h3>
+                            <button class="btn btn-primary" id="createEventFromDashboard">
+                                <i class="fas fa-plus"></i> Create New Event
+                            </button>
+                        </div>
+                        <div class="loading-state" id="eventsLoading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Loading your events...</p>
+                        </div>
+                        <div id="eventsList" style="display: none;"></div>
                     </div>
-                    <div id="paymentsTab" class="tab-content" style="display: none;">
-                        Loading payments...
+                    
+                    <!-- Payments Tab -->
+                    <div id="paymentsTab" class="tab-content">
+                        <div class="tab-header">
+                            <h3><i class="fas fa-money-bill-wave"></i> Pending Payments</h3>
+                            <div class="tab-actions">
+                                <button class="btn btn-outline" id="refreshPayments">
+                                    <i class="fas fa-sync-alt"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                        <div class="loading-state" id="paymentsLoading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Loading pending payments...</p>
+                        </div>
+                        <div id="paymentsList" style="display: none;"></div>
+                    </div>
+                    
+                    <!-- Analytics Tab -->
+                    <div id="analyticsTab" class="tab-content">
+                        <div class="tab-header">
+                            <h3><i class="fas fa-chart-line"></i> Event Analytics</h3>
+                            <select id="analyticsPeriod" class="form-control" style="width: auto;">
+                                <option value="7">Last 7 days</option>
+                                <option value="30" selected>Last 30 days</option>
+                                <option value="90">Last 90 days</option>
+                                <option value="365">Last year</option>
+                            </select>
+                        </div>
+                        <div class="loading-state" id="analyticsLoading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Loading analytics...</p>
+                        </div>
+                        <div id="analyticsContent" style="display: none;">
+                            <div class="analytics-stats" id="analyticsStats"></div>
+                            <div class="analytics-charts" id="analyticsCharts"></div>
+                        </div>
                     </div>
                 </div>
             </div>

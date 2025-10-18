@@ -568,62 +568,6 @@ footer {
     font-weight: 500;
 }
 
-/* Responsive Styles */
-@media (max-width: 768px) {
-    .header-content {
-        flex-wrap: wrap;
-    }
-
-    nav {
-        width: 100%;
-        order: 3;
-        margin-top: 1rem;
-        display: none;
-    }
-
-    nav.active {
-        display: block;
-    }
-
-    nav ul {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .auth-buttons {
-        margin-left: auto;
-    }
-
-    .mobile-menu {
-        display: block;
-    }
-
-    .hero h1 {
-        font-size: 2.2rem;
-    }
-
-    .hero p {
-        font-size: 1rem;
-    }
-
-    .steps {
-        flex-direction: column;
-    }
-
-    .dashboard-stats {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    #dashboardTabs {
-        flex-direction: column;
-    }
-
-    .modal-content {
-        width: 95%;
-        margin: 1rem;
-    }
-}
-
 /* Enhanced Modal Styles for Scrollable Content */
 .modal-content.scrollable {
     max-height: 80vh;
@@ -825,18 +769,107 @@ footer {
 .badge-warning { background: var(--warning); color: black; }
 .badge-danger { background: var(--danger); color: white; }
 
-@media (max-width: 480px) {
+/* Enhanced Mobile Responsiveness */
+@media (max-width: 768px) {
+    /* Improved header for mobile */
+    .header-content {
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .logo {
+        font-size: 1.4rem;
+        flex: 1;
+    }
+    
+    .auth-buttons {
+        order: 2;
+        margin-left: 0;
+    }
+    
+    nav {
+        width: 100%;
+        order: 3;
+        margin-top: 1rem;
+        display: none;
+    }
+    
+    nav.active {
+        display: block;
+    }
+    
+    nav ul {
+        flex-direction: column;
+        gap: 0.5rem;
+        background: rgba(255,255,255,0.1);
+        padding: 1rem;
+        border-radius: 10px;
+        backdrop-filter: blur(10px);
+    }
+    
+    .mobile-menu {
+        display: block;
+        order: 1;
+    }
+
+    /* Hero section mobile fixes */
     .hero {
         padding: 3rem 0;
+        min-height: auto;
     }
     
     .hero h1 {
-        font-size: 1.8rem;
+        font-size: 2rem;
+        line-height: 1.3;
+        margin-bottom: 1rem;
     }
     
+    .hero p {
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+        padding: 0 1rem;
+    }
+    
+    .search-bar {
+        flex-direction: column;
+        border-radius: 10px;
+        margin: 0 1rem;
+    }
+    
+    .search-bar input {
+        border-radius: 10px 10px 0 0;
+        padding: 1rem;
+    }
+    
+    .search-bar button {
+        border-radius: 0 0 10px 10px;
+        padding: 1rem;
+    }
+
+    /* Section spacing for mobile */
+    .section {
+        padding: 2rem 0;
+    }
+    
+    .section-title h2 {
+        font-size: 1.8rem;
+        padding: 0 1rem;
+    }
+    
+    .section-title p {
+        padding: 0 1rem;
+    }
+
+    /* Events grid mobile optimization */
     .events-grid {
         grid-template-columns: 1fr;
         gap: 1rem;
+        padding: 0 1rem;
+    }
+    
+    .event-card {
+        margin: 0 auto;
+        max-width: 100%;
     }
     
     .event-actions {
@@ -848,23 +881,157 @@ footer {
         width: 100%;
         text-align: center;
     }
+
+    /* Steps mobile layout */
+    .steps {
+        flex-direction: column;
+        gap: 1.5rem;
+        padding: 0 1rem;
+    }
     
+    .step {
+        min-width: 100%;
+        padding: 1.5rem 1rem;
+    }
+
+    /* Testimonials mobile */
+    .testimonials-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        padding: 0 1rem;
+    }
+
+    /* Footer mobile optimization */
+    .footer-content {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        text-align: center;
+    }
+    
+    .social-links {
+        justify-content: center;
+    }
+
+    /* Modal mobile improvements */
+    .modal-content {
+        width: 95%;
+        margin: 1rem;
+        padding: 1.5rem;
+    }
+    
+    .close-modal {
+        top: 0.5rem;
+        right: 1rem;
+    }
+
+    /* Dashboard tabs mobile */
+    #dashboardTabs {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    #dashboardTabs button {
+        width: 100%;
+    }
+
+    /* Stats cards mobile */
     .dashboard-stats {
         grid-template-columns: 1fr;
+        gap: 1rem;
+        padding: 0 1rem;
+    }
+}
+
+/* Extra small devices (phones under 480px) */
+@media (max-width: 480px) {
+    .container {
+        width: 100%;
+        padding: 0;
     }
     
-    .search-bar {
-        flex-direction: column;
-        border-radius: 10px;
+    .hero h1 {
+        font-size: 1.6rem;
+        padding: 0 1rem;
     }
     
-    .search-bar input {
-        border-radius: 10px 10px 0 0;
+    .hero p {
+        font-size: 0.9rem;
     }
     
-    .search-bar button {
-        border-radius: 0 0 10px 10px;
+    .btn {
+        padding: 0.8rem 1.2rem;
+        font-size: 0.9rem;
+    }
+    
+    .event-content {
         padding: 1rem;
+    }
+    
+    .section-title h2 {
+        font-size: 1.5rem;
+    }
+    
+    .testimonial-card {
+        padding: 1.5rem;
+    }
+    
+    /* Ensure no horizontal scrolling */
+    body {
+        overflow-x: hidden;
+    }
+    
+    /* Fix any potential overflow issues */
+    .container, 
+    .header-content, 
+    .hero, 
+    .section {
+        max-width: 100vw;
+        overflow-x: hidden;
+    }
+}
+
+/* Prevent text size adjustment on orientation change */
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+/* Touch device improvements */
+@media (hover: none) and (pointer: coarse) {
+    .event-card:hover {
+        transform: none;
+    }
+    
+    .btn:hover {
+        transform: none;
+    }
+    
+    /* Increase tap target sizes */
+    .btn, 
+    nav a, 
+    .event-card,
+    .social-links a {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    nav a {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 0;
+    }
+}
+
+/* Landscape mode optimizations */
+@media (max-height: 500px) and (orientation: landscape) {
+    .hero {
+        padding: 2rem 0;
+        min-height: auto;
+    }
+    
+    .modal-content {
+        max-height: 90vh;
+        margin: 0.5rem;
     }
 }
 

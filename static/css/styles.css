@@ -791,3 +791,36 @@ footer {
         transform: none;
     }
 }
+
+/* Utility Classes */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.mb-1 { margin-bottom: 1rem; }
+.mb-2 { margin-bottom: 2rem; }
+.mt-1 { margin-top: 1rem; }
+.mt-2 { margin-top: 2rem; }
+
+.hidden { display: none; }
+.flex { display: flex; }
+.grid { display: grid; }
+
+/* Status colors */
+.status-paid { color: var(--success); }
+.status-pending { color: var(--warning); }
+.status-unpaid { color: var(--danger); }
+
+/* Badge styles */
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 50px;
+}
+
+.badge-primary { background: var(--primary); color: white; }
+.badge-success { background: var(--success); color: white; }
+.badge-warning { background: var(--warning); color: black; }
+.badge-danger { background: var(--danger); color: white; }

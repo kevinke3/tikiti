@@ -678,3 +678,27 @@ footer {
     cursor: not-allowed;
     transform: none !important;
 }
+
+/* Form Validation */
+.form-control.error {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.form-control.success {
+    border-color: var(--success);
+}
+
+.error-message {
+    color: var(--danger);
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+    display: block;
+}
+
+.success-message {
+    color: var(--success);
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+    display: block;
+}

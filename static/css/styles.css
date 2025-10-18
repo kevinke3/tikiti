@@ -1034,8 +1034,8 @@ html {
         margin: 0.5rem;
     }
 }
-
-/* Dark mode support */
+/* 
+Dark mode support
 @media (prefers-color-scheme: dark) {
     :root {
         --light: #1a1a1a;
@@ -1057,4 +1057,4 @@ html {
         border-color: #444;
         color: white;
     }
-}
+} */

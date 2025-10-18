@@ -867,3 +867,27 @@ footer {
         padding: 1rem;
     }
 }
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --light: #1a1a1a;
+        --dark: #f8f9fa;
+        --light-gray: #2d2d2d;
+    }
+    
+    body {
+        background-color: #121212;
+        color: var(--dark);
+    }
+    
+    .event-card {
+        background: #2d2d2d;
+    }
+    
+    .form-control {
+        background: #2d2d2d;
+        border-color: #444;
+        color: white;
+    }
+}

@@ -824,3 +824,46 @@ footer {
 .badge-success { background: var(--success); color: white; }
 .badge-warning { background: var(--warning); color: black; }
 .badge-danger { background: var(--danger); color: white; }
+
+@media (max-width: 480px) {
+    .hero {
+        padding: 3rem 0;
+    }
+    
+    .hero h1 {
+        font-size: 1.8rem;
+    }
+    
+    .events-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .event-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .event-actions .btn {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .dashboard-stats {
+        grid-template-columns: 1fr;
+    }
+    
+    .search-bar {
+        flex-direction: column;
+        border-radius: 10px;
+    }
+    
+    .search-bar input {
+        border-radius: 10px 10px 0 0;
+    }
+    
+    .search-bar button {
+        border-radius: 0 0 10px 10px;
+        padding: 1rem;
+    }
+}
